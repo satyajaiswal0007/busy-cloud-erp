@@ -1,3 +1,13 @@
+Here is the updated code. It adds an inline company manager modal directly on your screen with a + Add Company button right next to the Entity selector in the header and in the voucher terminal.
+You can now click + Add Company, type any business or firm name, and it will:
+ * Immediately add it to both the top filter and voucher creation dropdowns.
+ * Automatically save it in browser storage so your companies persist whenever you open the site on that device.
+ * Keep the dynamic metrics, Pie Chart, Bar Chart, and daybook completely synced per added company.
+How to apply this update in GitHub:
+ * Open your repository busy-cloud-erp on GitHub and click on index.html.
+ * Click the Pencil icon (Edit this file) at the top right.
+ * Select all existing text (Ctrl + A), delete it, and paste this complete code block.
+ * Click Commit changes... at the top right.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,15 +43,16 @@
       </div>
     </div>
 
-    <!-- Company Selector & Role Switcher -->
+    <!-- Company Selector, Add Button & Role Switcher -->
     <div class="flex items-center gap-3 flex-wrap text-xs">
       <div class="flex items-center gap-2">
         <span class="text-slate-400 font-medium">Entity:</span>
         <select id="companySelector" onchange="changeCompany(this.value)" class="bg-slate-800 border border-slate-700 text-indigo-300 font-semibold rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-          <option value="ALL">Consolidated (All Entities)</option>
-          <option value="ENT_1">Entity Alpha (Manufacturing)</option>
-          <option value="ENT_2">Entity Beta (Distribution)</option>
+          <!-- Dynamically populated -->
         </select>
+        <button type="button" onclick="openAddCompanyModal()" class="bg-indigo-600/30 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/50 px-2.5 py-1.5 rounded-md flex items-center gap-1 transition font-medium">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add
+        </button>
       </div>
 
       <div class="flex items-center gap-2">
@@ -160,10 +171,12 @@
 
       <form id="voucherForm" onsubmit="handleFormSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 text-xs">
         <div>
-          <label class="block text-slate-400 font-semibold mb-1">Company Entity</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-slate-400 font-semibold">Company Entity</label>
+            <button type="button" onclick="openAddCompanyModal()" class="text-indigo-400 hover:text-indigo-300 text-[10px] font-medium">+ Add</button>
+          </div>
           <select id="inputCompany" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-            <option value="ENT_1">Entity Alpha</option>
-            <option value="ENT_2">Entity Beta</option>
+            <!-- Dynamically populated -->
           </select>
         </div>
 
@@ -255,6 +268,31 @@
 
   </main>
 
+  <!-- ================= POPUP MODAL: ADD COMPANY / ENTITY ================= -->
+  <div id="addCompanyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-sm text-slate-100 flex items-center gap-2">
+          <i data-lucide="building-2" class="w-4 h-4 text-indigo-400"></i> Add Company / Entity
+        </h3>
+        <button type="button" onclick="closeAddCompanyModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleAddNewCompany(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Company / Branch Name</label>
+          <input type="text" id="newCompanyNameInput" required placeholder="e.g. Shyam Traders, Head Office..." class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeAddCompanyModal()" class="px-3.5 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition">Save Company</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ================= CORE CLIENT LOGIC & SUPABASE INTEGRATION ================= -->
   <script>
     // -------------------------------------------------------------
@@ -270,11 +308,62 @@
       supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
+    // Dynamic Companies List (loaded from localStorage or initialized)
+    let companies = JSON.parse(localStorage.getItem('omni_custom_companies')) || [
+      { id: "ENT_1", name: "Entity Alpha (Main)" },
+      { id: "ENT_2", name: "Entity Beta (Branch)" }
+    ];
+
+    function saveCompanies() {
+      localStorage.setItem('omni_custom_companies', JSON.stringify(companies));
+    }
+
+    function openAddCompanyModal() {
+      document.getElementById('addCompanyModal').classList.remove('hidden');
+      document.getElementById('newCompanyNameInput').focus();
+    }
+
+    function closeAddCompanyModal() {
+      document.getElementById('addCompanyModal').classList.add('hidden');
+      document.getElementById('newCompanyNameInput').value = '';
+    }
+
+    function handleAddNewCompany(e) {
+      e.preventDefault();
+      const name = document.getElementById('newCompanyNameInput').value.trim();
+      if (!name) return;
+
+      const newId = "ENT_" + (Date.now().toString().slice(-4));
+      companies.push({ id: newId, name: name });
+      saveCompanies();
+      populateCompanySelectors();
+      
+      // Auto select the new company in form
+      document.getElementById('inputCompany').value = newId;
+      closeAddCompanyModal();
+      renderAll();
+    }
+
+    function populateCompanySelectors() {
+      const headerSelector = document.getElementById("companySelector");
+      const formSelector = document.getElementById("inputCompany");
+      
+      const currentVal = headerSelector.value || "ALL";
+
+      headerSelector.innerHTML = `
+        <option value="ALL">Consolidated (All Entities)</option>
+        ${companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+      `;
+      headerSelector.value = currentVal;
+
+      formSelector.innerHTML = companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    }
+
     // In-memory fallback caches
     let inventory = [
-      { id: 1, name: "Industrial Component Alpha", entity: "ENT_1", stock: 150 },
-      { id: 2, name: "Synthetic Resin 50kg", entity: "ENT_1", stock: 320 },
-      { id: 3, name: "Precision Assembly Unit", entity: "ENT_2", stock: 85 }
+      { id: 1, name: "General Stock SKU 1", entity: "ENT_1", stock: 150 },
+      { id: 2, name: "General Stock SKU 2", entity: "ENT_1", stock: 320 },
+      { id: 3, name: "General Stock SKU 3", entity: "ENT_2", stock: 85 }
     ];
 
     let vouchers = [];
@@ -298,7 +387,6 @@
         aiSec.classList.remove("hidden");
         metricSec.classList.remove("hidden");
         chartSec.classList.remove("hidden");
-        renderAll();
       }
     }
 
@@ -359,6 +447,7 @@
         document.getElementById('connectionBadge').className = "flex items-center gap-1.5 bg-amber-950/60 border border-amber-500/30 text-amber-400 px-2.5 py-1 rounded-full font-mono font-medium";
       }
 
+      populateCompanySelectors();
       renderAll();
     }
 
@@ -500,6 +589,7 @@
       document.getElementById("statCollections").innerText = "₹" + totalCollections.toLocaleString('en-IN', { minimumFractionDigits: 2 });
       document.getElementById("statStock").innerText = totalStockUnits + " Units";
 
+      // Render Table Body
       const tbody = document.getElementById("ledgerTableBody");
       tbody.innerHTML = filtered.map(v => {
         let typeBadge = "text-emerald-400";
@@ -507,11 +597,14 @@
         if (v.type === "Payment") typeBadge = "text-rose-400";
         if (v.type === "Receipt") typeBadge = "text-amber-400";
 
+        const entityObj = companies.find(c => c.id === v.entity);
+        const entityLabel = entityObj ? entityObj.name : v.entity;
+
         return `
           <tr class="hover:bg-slate-800/40 transition">
             <td class="px-5 py-3 text-slate-400 text-[11px]">${v.time}</td>
-            <td class="px-5 py-3 font-semibold text-[11px] ${v.entity === 'ENT_1' ? 'text-indigo-400' : 'text-purple-400'}">
-              ${v.entity === 'ENT_1' ? 'Entity Alpha' : 'Entity Beta'}
+            <td class="px-5 py-3 font-semibold text-[11px] text-indigo-400">
+              ${entityLabel}
             </td>
             <td class="px-5 py-3 font-bold ${typeBadge}">${v.type}</td>
             <td class="px-5 py-3 font-medium text-slate-100 font-sans">${v.party}</td>
@@ -535,8 +628,15 @@
 
     // Chart.js Visualizations
     function renderCharts() {
-      const ent1Sales = vouchers.filter(v => v.entity === 'ENT_1' && v.type === 'Sales Invoice').reduce((s, r) => s + r.amount, 0);
-      const ent2Sales = vouchers.filter(v => v.entity === 'ENT_2' && v.type === 'Sales Invoice').reduce((s, r) => s + r.amount, 0);
+      // 1. Pie Chart - Dynamically splits across all registered companies
+      const pieLabels = companies.map(c => c.name);
+      const pieData = companies.map(c => {
+        return vouchers
+          .filter(v => v.entity === c.id && v.type === 'Sales Invoice')
+          .reduce((sum, v) => sum + v.amount, 0);
+      });
+
+      const colors = ['#6366f1', '#a855f7', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
 
       const pieCtx = document.getElementById('salesPieChart').getContext('2d');
       if (pieChartInstance) pieChartInstance.destroy();
@@ -544,10 +644,10 @@
       pieChartInstance = new Chart(pieCtx, {
         type: 'doughnut',
         data: {
-          labels: ['Entity Alpha', 'Entity Beta'],
+          labels: pieLabels,
           datasets: [{
-            data: [ent1Sales || 1, ent2Sales || 1],
-            backgroundColor: ['#6366f1', '#a855f7'],
+            data: pieData.some(d => d > 0) ? pieData : [1],
+            backgroundColor: colors.slice(0, companies.length),
             borderColor: '#0f172a',
             borderWidth: 4
           }]
@@ -561,6 +661,7 @@
         }
       });
 
+      // 2. Bar Chart (Recent 5 Transactions Velocity)
       const barCtx = document.getElementById('salesBarChart').getContext('2d');
       if (barChartInstance) barChartInstance.destroy();
 
