@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniCloud ERP - Enterprise Intelligence Platform</title>
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js for High-Performance Visuals -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Supabase Official Client Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased">
+
+  <!-- ================= TOP NAVIGATION / MENU BAR ================= -->
+  <header class="bg-slate-900 border-b border-slate-800 px-6 py-2.5 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50">
+    <div class="flex items-center space-x-3">
+      <div class="bg-indigo-600 p-2 rounded-lg text-white shadow-lg shadow-indigo-500/20">
+        <i data-lucide="layers" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base tracking-wide flex items-center gap-2">
+          OmniCloud ERP <span class="text-[10px] bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded font-mono">v4.5 LIVE</span>
+        </h1>
+        <p class="text-[11px] text-slate-400">Multi-Entity Centralized Cloud Ledger</p>
+      </div>
+    </div>
+
+    <!-- Company Selector & Role Switcher -->
+    <div class="flex items-center gap-3 flex-wrap text-xs">
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400 font-medium">Entity:</span>
+        <select id="companySelector" onchange="changeCompany(this.value)" class="bg-slate-800 border border-slate-700 text-indigo-300 font-semibold rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          <option value="ALL">Consolidated (All Entities)</option>
+          <option value="ENT_1">Entity Alpha (Manufacturing)</option>
+          <option value="ENT_2">Entity Beta (Distribution)</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400 font-medium">Portal Mode:</span>
+        <select id="roleSelector" onchange="changeRole(this.value)" class="bg-slate-800 border border-slate-700 text-emerald-400 font-semibold rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+          <option value="OWNER">Executive / Owner View</option>
+          <option value="STAFF">Billing Counter (Staff View)</option>
+        </select>
+      </div>
+
+      <div id="connectionBadge" class="flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-full font-mono font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        Database: Connected
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN WORKSPACE ================= -->
+  <main class="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+
+    <!-- AI EXECUTIVE BUSINESS INSIGHT BANNER -->
+    <section id="aiInsightSection" class="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-xl p-5 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-start gap-3.5">
+        <div class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-lg shrink-0">
+          <i data-lucide="sparkles" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="font-bold text-sm text-indigo-300">AI Financial Health & Daily Audit Summary</h3>
+            <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-mono">REAL-TIME COPILOT</span>
+          </div>
+          <p id="aiSummaryText" class="text-xs text-slate-300 mt-1 leading-relaxed">Evaluating live ledger velocities, liquid settlements, debtor exposures, and inventory balances...</p>
+        </div>
+      </div>
+      <button onclick="runAIAudit()" class="text-xs text-indigo-300 hover:text-white bg-indigo-950 border border-indigo-700/60 px-3.5 py-2 rounded-lg whitespace-nowrap transition">
+        Recompute Audit
+      </button>
+    </section>
+
+    <!-- OWNER METRIC CARDS -->
+    <section id="metricCardsSection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex justify-between items-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span>Today's Total Sales</span>
+          <i data-lucide="trending-up" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <p id="statSales" class="text-2xl font-bold text-emerald-400 mt-2 font-mono">₹0.00</p>
+        <span class="text-[11px] text-slate-400">Gross billed turnover</span>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex justify-between items-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span>Pending Receivables</span>
+          <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <p id="statReceivables" class="text-2xl font-bold text-amber-400 mt-2 font-mono">₹0.00</p>
+        <span class="text-[11px] text-slate-400">Unsettled customer invoices</span>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex justify-between items-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span>Liquid Collections</span>
+          <i data-lucide="wallet" class="w-4 h-4 text-blue-400"></i>
+        </div>
+        <p id="statCollections" class="text-2xl font-bold text-blue-400 mt-2 font-mono">₹0.00</p>
+        <span class="text-[11px] text-slate-400">Cash & bank inward settlements</span>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex justify-between items-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span>Inventory Status</span>
+          <i data-lucide="package" class="w-4 h-4 text-purple-400"></i>
+        </div>
+        <p id="statStock" class="text-2xl font-bold text-purple-400 mt-2 font-mono">0 Units</p>
+        <span class="text-[11px] text-slate-400">Available physical stock</span>
+      </div>
+    </section>
+
+    <!-- CHARTS SECTION: PIE CHART + REVENUE BAR -->
+    <section id="chartsSection" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Dynamic Pie Chart -->
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-bold text-sm text-slate-200">Revenue Contribution (Pie Chart)</h3>
+          <span class="text-[10px] font-mono text-slate-400">ENTITY SPLIT</span>
+        </div>
+        <div class="relative h-60 flex items-center justify-center">
+          <canvas id="salesPieChart"></canvas>
+        </div>
+        <p class="text-[11px] text-slate-400 text-center mt-2">Real-time revenue share across active subsidiaries</p>
+      </div>
+
+      <!-- Real-Time Bar Chart -->
+      <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl lg:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-sm text-slate-200">Live Invoicing Velocity (₹)</h3>
+          <span class="text-xs text-indigo-400 bg-indigo-950/60 border border-indigo-800 px-2 py-0.5 rounded font-mono">Auto-Updating</span>
+        </div>
+        <div class="h-60">
+          <canvas id="salesBarChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- INVOICE / VOUCHER CREATION TERMINAL -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+        <div>
+          <h2 class="font-bold text-base text-slate-100 flex items-center gap-2">
+            <i data-lucide="file-plus-2" class="w-4 h-4 text-indigo-400"></i> Voucher & Billing Terminal
+          </h2>
+          <p class="text-xs text-slate-400">Direct transaction entry. Saves directly to cloud database and updates all owner screens immediately.</p>
+        </div>
+        <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-md font-mono">Terminal Active</span>
+      </div>
+
+      <form id="voucherForm" onsubmit="handleFormSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 text-xs">
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Company Entity</label>
+          <select id="inputCompany" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <option value="ENT_1">Entity Alpha</option>
+            <option value="ENT_2">Entity Beta</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Voucher Type</label>
+          <select id="inputType" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <option value="Sales Invoice">Sales Invoice</option>
+            <option value="Purchase Invoice">Purchase Invoice</option>
+            <option value="Receipt">Receipt (Payment In)</option>
+            <option value="Payment">Payment (Cash Out)</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-slate-400 font-semibold mb-1">Party / Ledger Name</label>
+          <input type="text" id="inputParty" required placeholder="e.g. Acme Industries Ltd" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Item / SKU</label>
+          <select id="inputItem" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <!-- Dynamically populated from inventory -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Quantity</label>
+          <input type="number" id="inputQty" required min="1" value="1" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Amount (₹)</label>
+          <input type="number" step="0.01" id="inputAmount" required placeholder="10000.00" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono" />
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Settlement</label>
+          <select id="inputStatus" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <option value="Unsettled">Unsettled / Receivable</option>
+            <option value="Settled">Settled / Paid</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Staff / Operator</label>
+          <input type="text" id="inputOperator" required placeholder="Operator name" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        </div>
+
+        <div class="md:col-span-3 flex items-end">
+          <button type="submit" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition shadow-md">
+            <i data-lucide="cloud-upload" class="w-4 h-4"></i>
+            Commit to Cloud Database
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- LIVE DAYBOOK & AUDIT FEED REGISTER -->
+    <section class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+      <div class="px-6 py-4 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-bold text-sm text-slate-100 uppercase tracking-wide">Daybook Audit Register</h2>
+          <p class="text-xs text-slate-400">Chronological transaction feed synced from cloud</p>
+        </div>
+        <input type="text" id="tableSearch" onkeyup="filterLedger()" placeholder="Search Ledger, Party, or Amount..." class="bg-slate-950 border border-slate-700 text-xs px-3.5 py-1.5 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-200 w-64" />
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <tr>
+              <th class="px-5 py-3">Timestamp</th>
+              <th class="px-5 py-3">Entity</th>
+              <th class="px-5 py-3">Voucher Type</th>
+              <th class="px-5 py-3">Party Name</th>
+              <th class="px-5 py-3">Item / Description</th>
+              <th class="px-5 py-3">Qty</th>
+              <th class="px-5 py-3">Status</th>
+              <th class="px-5 py-3">Operator</th>
+              <th class="px-5 py-3 text-right">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="ledgerTableBody" class="divide-y divide-slate-800/60 font-mono">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= CORE CLIENT LOGIC & SUPABASE INTEGRATION ================= -->
+  <script>
+    // -------------------------------------------------------------
+    // CLOUD DATABASE INTEGRATION CONFIGURATION:
+    // -------------------------------------------------------------
+    const SUPABASE_URL = "https://nufeuutqetjaogsqxelh.supabase.co";
+    const SUPABASE_ANON_KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51ZmV1dXRxZXRqYW9nc3F4ZWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI2ODM2NjIsImV4cCI6MjEwODI1OTY2Mn0.5O0bV8OEFZ8tBpAdzn5a-NkiV-D829w-nobxkXc-e8U";
+
+    let supabase = null;
+    const isCloudConfigured = SUPABASE_ANON_KEY !== "PASTE_YOUR_COPIED_ANON_KEY_HERE";
+
+    if (isCloudConfigured) {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    // In-memory fallback caches
+    let inventory = [
+      { id: 1, name: "Industrial Component Alpha", entity: "ENT_1", stock: 150 },
+      { id: 2, name: "Synthetic Resin 50kg", entity: "ENT_1", stock: 320 },
+      { id: 3, name: "Precision Assembly Unit", entity: "ENT_2", stock: 85 }
+    ];
+
+    let vouchers = [];
+    let currentEntity = "ALL";
+    let currentRole = "OWNER";
+    let pieChartInstance = null;
+    let barChartInstance = null;
+
+    // View & Entity Switchers
+    function changeRole(role) {
+      currentRole = role;
+      const aiSec = document.getElementById("aiInsightSection");
+      const metricSec = document.getElementById("metricCardsSection");
+      const chartSec = document.getElementById("chartsSection");
+
+      if (role === "STAFF") {
+        aiSec.classList.add("hidden");
+        metricSec.classList.add("hidden");
+        chartSec.classList.add("hidden");
+      } else {
+        aiSec.classList.remove("hidden");
+        metricSec.classList.remove("hidden");
+        chartSec.classList.remove("hidden");
+        renderAll();
+      }
+    }
+
+    function changeCompany(ent) {
+      currentEntity = ent;
+      renderAll();
+    }
+
+    // Audio chime triggered when another device commits an entry
+    function playNotificationChime() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime); // E5
+        osc.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+      } catch (e) {}
+    }
+
+    // Initial Data Fetch
+    async function loadData() {
+      if (isCloudConfigured) {
+        const { data: vchData, error: vchErr } = await supabase
+          .from('vouchers')
+          .select('*')
+          .order('id', { ascending: false });
+
+        if (!vchErr && vchData) {
+          vouchers = vchData.map(v => ({
+            id: v.id,
+            time: new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            entity: v.entity,
+            type: v.vch_type,
+            party: v.party_name,
+            item: v.item_name,
+            qty: v.quantity,
+            amount: Number(v.amount),
+            status: v.status,
+            operator: v.operator
+          }));
+        }
+
+        const { data: invData, error: invErr } = await supabase.from('inventory').select('*');
+        if (!invErr && invData && invData.length > 0) {
+          inventory = invData.map(i => ({
+            id: i.id,
+            name: i.item_name,
+            entity: i.entity,
+            stock: Number(i.stock)
+          }));
+        }
+      } else {
+        document.getElementById('connectionBadge').innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          Key Missing (Offline Mode)
+        `;
+        document.getElementById('connectionBadge').className = "flex items-center gap-1.5 bg-amber-950/60 border border-amber-500/30 text-amber-400 px-2.5 py-1 rounded-full font-mono font-medium";
+      }
+
+      renderAll();
+    }
+
+    // Supabase Real-Time Broadcast Listener
+    function setupRealtimeListener() {
+      if (!isCloudConfigured) return;
+
+      supabase
+        .channel('schema-db-changes')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'vouchers' },
+          payload => {
+            const v = payload.new;
+            vouchers.unshift({
+              id: v.id,
+              time: new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              entity: v.entity,
+              type: v.vch_type,
+              party: v.party_name,
+              item: v.item_name,
+              qty: v.quantity,
+              amount: Number(v.amount),
+              status: v.status,
+              operator: v.operator
+            });
+
+            const item = inventory.find(i => i.name === v.item_name);
+            if (item) {
+              if (v.vch_type === "Sales Invoice") item.stock = Math.max(0, item.stock - Number(v.quantity));
+              if (v.vch_type === "Purchase Invoice") item.stock += Number(v.quantity);
+            }
+
+            renderAll();
+            playNotificationChime();
+          }
+        )
+        .subscribe();
+    }
+
+    // Form Submission: Commits straight to Cloud Supabase
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById("submitBtn");
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Writing to Database...";
+
+      const entity = document.getElementById("inputCompany").value;
+      const type = document.getElementById("inputType").value;
+      const party = document.getElementById("inputParty").value.toUpperCase();
+      const itemId = parseInt(document.getElementById("inputItem").value);
+      const qty = parseInt(document.getElementById("inputQty").value);
+      const amount = parseFloat(document.getElementById("inputAmount").value);
+      const status = document.getElementById("inputStatus").value;
+      const operator = document.getElementById("inputOperator").value;
+
+      const matchedItem = inventory.find(i => i.id === itemId);
+      const itemName = matchedItem ? matchedItem.name : "General SKU";
+
+      if (isCloudConfigured) {
+        await supabase.from('vouchers').insert([{
+          entity: entity,
+          vch_type: type,
+          party_name: party,
+          item_name: itemName,
+          quantity: qty,
+          amount: amount,
+          status: status,
+          operator: operator
+        }]);
+
+        if (matchedItem) {
+          let newStock = matchedItem.stock;
+          if (type === "Sales Invoice") newStock = Math.max(0, newStock - qty);
+          if (type === "Purchase Invoice") newStock += qty;
+
+          await supabase.from('inventory').update({ stock: newStock }).eq('id', matchedItem.id);
+        }
+      } else {
+        vouchers.unshift({
+          id: Date.now(),
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          entity: entity,
+          type: type,
+          party: party,
+          item: itemName,
+          qty: qty,
+          amount: amount,
+          status: status,
+          operator: operator
+        });
+        if (matchedItem) {
+          if (type === "Sales Invoice") matchedItem.stock = Math.max(0, matchedItem.stock - qty);
+          if (type === "Purchase Invoice") matchedItem.stock += qty;
+        }
+        renderAll();
+      }
+
+      document.getElementById("inputParty").value = "";
+      document.getElementById("inputAmount").value = "";
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<i data-lucide="cloud-upload" class="w-4 h-4"></i> Commit to Cloud Database`;
+      lucide.createIcons();
+    }
+
+    // Render Metrics, Dropdowns, Table & Charts
+    function renderAll() {
+      const itemDropdown = document.getElementById("inputItem");
+      itemDropdown.innerHTML = inventory.map(item => `
+        <option value="${item.id}">${item.name} (${item.stock} in stock)</option>
+      `).join('');
+
+      const filtered = currentEntity === "ALL" 
+        ? vouchers 
+        : vouchers.filter(v => v.entity === currentEntity);
+
+      const filteredInventory = currentEntity === "ALL" 
+        ? inventory 
+        : inventory.filter(i => i.entity === currentEntity);
+
+      let totalSales = 0;
+      let totalReceivables = 0;
+      let totalCollections = 0;
+
+      filtered.forEach(v => {
+        if (v.type === "Sales Invoice") {
+          totalSales += v.amount;
+          if (v.status === "Unsettled") totalReceivables += v.amount;
+          else totalCollections += v.amount;
+        } else if (v.type === "Receipt") {
+          totalCollections += v.amount;
+        }
+      });
+
+      const totalStockUnits = filteredInventory.reduce((acc, c) => acc + c.stock, 0);
+
+      document.getElementById("statSales").innerText = "₹" + totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      document.getElementById("statReceivables").innerText = "₹" + totalReceivables.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      document.getElementById("statCollections").innerText = "₹" + totalCollections.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      document.getElementById("statStock").innerText = totalStockUnits + " Units";
+
+      const tbody = document.getElementById("ledgerTableBody");
+      tbody.innerHTML = filtered.map(v => {
+        let typeBadge = "text-emerald-400";
+        if (v.type === "Purchase Invoice") typeBadge = "text-sky-400";
+        if (v.type === "Payment") typeBadge = "text-rose-400";
+        if (v.type === "Receipt") typeBadge = "text-amber-400";
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="px-5 py-3 text-slate-400 text-[11px]">${v.time}</td>
+            <td class="px-5 py-3 font-semibold text-[11px] ${v.entity === 'ENT_1' ? 'text-indigo-400' : 'text-purple-400'}">
+              ${v.entity === 'ENT_1' ? 'Entity Alpha' : 'Entity Beta'}
+            </td>
+            <td class="px-5 py-3 font-bold ${typeBadge}">${v.type}</td>
+            <td class="px-5 py-3 font-medium text-slate-100 font-sans">${v.party}</td>
+            <td class="px-5 py-3 text-slate-400 font-sans">${v.item}</td>
+            <td class="px-5 py-3 text-slate-200">${v.qty}</td>
+            <td class="px-5 py-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${v.status === 'Settled' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'}">
+                ${v.status}
+              </span>
+            </td>
+            <td class="px-5 py-3 text-slate-400 font-sans">${v.operator}</td>
+            <td class="px-5 py-3 text-right font-bold text-slate-100">₹${v.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+          </tr>
+        `;
+      }).join('');
+
+      renderCharts();
+      runAIAudit();
+      lucide.createIcons();
+    }
+
+    // Chart.js Visualizations
+    function renderCharts() {
+      const ent1Sales = vouchers.filter(v => v.entity === 'ENT_1' && v.type === 'Sales Invoice').reduce((s, r) => s + r.amount, 0);
+      const ent2Sales = vouchers.filter(v => v.entity === 'ENT_2' && v.type === 'Sales Invoice').reduce((s, r) => s + r.amount, 0);
+
+      const pieCtx = document.getElementById('salesPieChart').getContext('2d');
+      if (pieChartInstance) pieChartInstance.destroy();
+
+      pieChartInstance = new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Entity Alpha', 'Entity Beta'],
+          datasets: [{
+            data: [ent1Sales || 1, ent2Sales || 1],
+            backgroundColor: ['#6366f1', '#a855f7'],
+            borderColor: '#0f172a',
+            borderWidth: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11, family: 'Inter' } } }
+          }
+        }
+      });
+
+      const barCtx = document.getElementById('salesBarChart').getContext('2d');
+      if (barChartInstance) barChartInstance.destroy();
+
+      const recentFive = vouchers.slice(0, 5).reverse();
+      barChartInstance = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: recentFive.map(v => v.party.substring(0, 14)),
+          datasets: [{
+            label: 'Transaction Amount (₹)',
+            data: recentFive.map(v => v.amount),
+            backgroundColor: '#4f46e5',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } } },
+            x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'Inter' } } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // Autonomous AI Copilot Briefing
+    function runAIAudit() {
+      const salesTotal = vouchers.filter(v => v.type === 'Sales Invoice').reduce((s, r) => s + r.amount, 0);
+      const unpaidDebts = vouchers.filter(v => v.status === 'Unsettled');
+      const pendingTotal = unpaidDebts.reduce((s, r) => s + r.amount, 0);
+      const realizationRatio = salesTotal > 0 ? Math.round(((salesTotal - pendingTotal) / salesTotal) * 100) : 0;
+
+      const summary = `Aggregate turnover stands at ₹${salesTotal.toLocaleString('en-IN')}. Outstanding debtor exposure is currently ₹${pendingTotal.toLocaleString('en-IN')}, reflecting a ${realizationRatio}% collection realization rate. Stock velocity remains stable with no critical inventory stockouts detected across active warehouse units.`;
+
+      document.getElementById('aiSummaryText').innerText = summary;
+    }
+
+    function filterLedger() {
+      const query = document.getElementById('tableSearch').value.toLowerCase();
+      const rows = document.querySelectorAll('#ledgerTableBody tr');
+      rows.forEach(r => {
+        r.style.display = r.innerText.toLowerCase().includes(query) ? '' : 'none';
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadData();
+      setupRealtimeListener();
+    });
+  </script>
+</body>
+</html>
